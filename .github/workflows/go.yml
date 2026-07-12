@@ -18,6 +18,8 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
-          go-version-file: 'go.mod'
+          # Pin a modern toolchain: upstream go.mod still declares `go 1.13`
+          # but the code uses 1.20+ stdlib (errors.Join, strings.CutSuffix).
+          go-version: 'stable'
       - name: "Unit & module tests"
         run: go test ./...
