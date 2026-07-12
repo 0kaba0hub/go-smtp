@@ -1,0 +1,23 @@
+name: "Testing"
+
+on:
+  push:
+    branches: [ master, yarilo-patches ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ master, yarilo-patches ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: "Build and test"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: "Unit & module tests"
+        run: go test ./...
