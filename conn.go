@@ -129,7 +129,7 @@ func (c *Conn) handle(cmd string, arg string) {
 	case "VRFY":
 		c.writeResponse(252, EnhancedCode{2, 5, 0}, "Cannot VRFY user, but will accept message")
 	case "NOOP":
-		c.writeResponse(250, EnhancedCode{2, 0, 0}, "I have successfully done nothing")
+		c.writeResponse(250, EnhancedCode{2, 0, 0}, "OK")
 	case "RSET": // Reset session
 		c.reset()
 		c.writeResponse(250, EnhancedCode{2, 0, 0}, "Session reset")
@@ -444,7 +444,7 @@ func (c *Conn) handleMail(arg string) {
 		return
 	}
 
-	c.writeResponse(250, EnhancedCode{2, 0, 0}, fmt.Sprintf("Roger, accepting mail from <%v>", from))
+	c.writeResponse(250, EnhancedCode{2, 1, 0}, "OK")
 	c.fromReceived = true
 }
 
@@ -788,7 +788,7 @@ func (c *Conn) handleRcpt(arg string) {
 		return
 	}
 	c.recipients = append(c.recipients, recipient)
-	c.writeResponse(250, EnhancedCode{2, 0, 0}, fmt.Sprintf("I'll make sure <%v> gets this", recipient))
+	c.writeResponse(250, EnhancedCode{2, 1, 5}, "OK")
 }
 
 func checkNotifySet(values []DSNNotify) error {
@@ -1265,7 +1265,7 @@ func dataErrorToStatus(err error) (code int, enchCode EnhancedCode, msg string) 
 		}
 	}
 
-	return 250, EnhancedCode{2, 0, 0}, "OK: queued"
+	return 250, EnhancedCode{2, 0, 0}, "Saved"
 }
 
 func (c *Conn) Reject() {
