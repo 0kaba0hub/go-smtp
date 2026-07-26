@@ -45,6 +45,14 @@ type Server struct {
 	// Should be used only if backend supports it.
 	EnableSMTPUTF8 bool
 
+	// Accept and advertise the inbound XCLIENT command (Postfix extension:
+	// https://www.postfix.org/XCLIENT_README.html) used by a trusted front-end
+	// proxy to forward the ORIGINAL client's attributes. The server performs NO
+	// trust check of its own — a Session that implements XClientReceiver is
+	// handed the parsed attributes and is responsible for validating the peer
+	// before honouring them. Off by default.
+	EnableXCLIENT bool
+
 	// Advertise REQUIRETLS (RFC 8689) capability.
 	// Should be used only if backend supports it.
 	EnableREQUIRETLS bool
