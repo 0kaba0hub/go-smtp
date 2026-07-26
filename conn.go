@@ -144,6 +144,8 @@ func (c *Conn) handle(cmd string, arg string) {
 		c.handleAuth(arg)
 	case "STARTTLS":
 		c.handleStartTLS()
+	case "XCLIENT":
+		c.handleXclient(arg)
 	default:
 		msg := fmt.Sprintf("Syntax errors, %v command unrecognized", cmd)
 		c.protocolError(500, EnhancedCode{5, 5, 2}, msg)
@@ -273,6 +275,9 @@ func (c *Conn) handleGreet(enhanced bool, arg string) {
 	}
 	if c.server.EnableSMTPUTF8 {
 		caps = append(caps, "SMTPUTF8")
+	}
+	if c.server.EnableXCLIENT {
+		caps = append(caps, "XCLIENT NAME ADDR PORT PROTO HELO LOGIN")
 	}
 	if _, isTLS := c.TLSConnectionState(); isTLS && c.server.EnableREQUIRETLS {
 		caps = append(caps, "REQUIRETLS")
