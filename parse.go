@@ -22,6 +22,10 @@ func parseCmd(line string) (cmd string, arg string, err error) {
 	switch {
 	case strings.HasPrefix(strings.ToUpper(line), "STARTTLS"):
 		return "STARTTLS", "", nil
+	case strings.HasPrefix(strings.ToUpper(line), "XCLIENT"):
+		// Postfix XCLIENT is a 7-letter verb; the 4-letter fast path below
+		// would mangle it. Carry the remainder as the argument list.
+		return "XCLIENT", strings.TrimSpace(line[len("XCLIENT"):]), nil
 	case l == 0:
 		return "", "", nil
 	case l < 4:
