@@ -43,6 +43,10 @@ type Client struct {
 
 	// Logger for all network activity.
 	DebugWriter io.Writer
+
+	// ForceORCPT sends RcptOptions.OriginalRecipient as ORCPT even when the
+	// server did not announce DSN, as a proxy does for an LMTP server that takes it.
+	ForceORCPT bool
 }
 
 // 30 seconds was chosen as it's the same duration as http.DefaultTransport's
@@ -527,7 +531,8 @@ func (c *Client) Rcpt(to string, opts *RcptOptions) error {
 	// A high enough power of 2 than 510+29+501
 	sb.Grow(2048)
 	fmt.Fprintf(&sb, "RCPT TO:<%s>", to)
-	if _, ok := c.ext["DSN"]; ok && opts != nil {
+	_, dsn := c.ext["DSN"]
+	if dsn && opts != nil {
 		if len(opts.Notify) != 0 {
 			sb.WriteString(" NOTIFY=")
 			if err := checkNotifySet(opts.Notify); err != nil {
@@ -540,6 +545,8 @@ func (c *Client) Rcpt(to string, opts *RcptOptions) error {
 				sb.WriteString(string(v))
 			}
 		}
+	}
+	if (dsn || c.ForceORCPT) && opts != nil {
 		if opts.OriginalRecipient != "" {
 			var enc string
 			switch opts.OriginalRecipientType {
