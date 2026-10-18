@@ -759,7 +759,7 @@ func (c *Conn) handleRcpt(arg string) {
 			}
 			opts.Notify = notify
 		case "ORCPT":
-			if !c.server.EnableDSN {
+			if !c.server.EnableDSN && !c.server.AcceptORCPT {
 				c.writeResponse(504, EnhancedCode{5, 5, 4}, "ORCPT is not implemented")
 				return
 			}
