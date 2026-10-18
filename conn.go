@@ -276,7 +276,7 @@ func (c *Conn) handleGreet(enhanced bool, arg string) {
 	if c.server.EnableSMTPUTF8 {
 		caps = append(caps, "SMTPUTF8")
 	}
-	if c.server.EnableXCLIENT {
+	if c.server.EnableXCLIENT && (c.server.XCLIENTAdvertise == nil || c.server.XCLIENTAdvertise(c.conn.RemoteAddr())) {
 		caps = append(caps, "XCLIENT NAME ADDR PORT PROTO HELO LOGIN")
 	}
 	if _, isTLS := c.TLSConnectionState(); isTLS && c.server.EnableREQUIRETLS {

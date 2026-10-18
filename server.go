@@ -53,6 +53,11 @@ type Server struct {
 	// before honouring them. Off by default.
 	EnableXCLIENT bool
 
+	// XCLIENTAdvertise, when set, decides per connection whether EHLO lists
+	// XCLIENT: a peer it is false for does not see it. The command itself is
+	// still handed to the Session, which judges the peer as before.
+	XCLIENTAdvertise func(remote net.Addr) bool
+
 	// Advertise REQUIRETLS (RFC 8689) capability.
 	// Should be used only if backend supports it.
 	EnableREQUIRETLS bool
