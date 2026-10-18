@@ -58,6 +58,10 @@ type Server struct {
 	// still handed to the Session, which judges the peer as before.
 	XCLIENTAdvertise func(remote net.Addr) bool
 
+	// AcceptORCPT takes the RCPT ORCPT parameter (RFC 3461) without DSN being
+	// enabled or advertised, for an LMTP server behind a proxy that sends it.
+	AcceptORCPT bool
+
 	// Advertise REQUIRETLS (RFC 8689) capability.
 	// Should be used only if backend supports it.
 	EnableREQUIRETLS bool
