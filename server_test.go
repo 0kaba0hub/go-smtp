@@ -1829,3 +1829,27 @@ func TestServerMTPRIORITY(t *testing.T) {
 		t.Fatalf("MTPriority: want %d, got %d", expectedPriority, *opts.MTPriority)
 	}
 }
+
+// AcceptORCPT takes ORCPT without advertising DSN; NOTIFY stays refused.
+func TestServerAcceptORCPT(t *testing.T) {
+	for _, accept := range []bool{true, false} {
+		_, s, c, scanner, caps := testServerEhlo(t, func(s *smtp.Server) { s.AcceptORCPT = accept })
+		if _, ok := caps["DSN"]; ok {
+			t.Errorf("accept=%v: DSN advertised", accept)
+		}
+		io.WriteString(c, "MAIL FROM:<a@example.com>\r\n")
+		scanner.Scan()
+		io.WriteString(c, "RCPT TO:<u@example.com> ORCPT=rfc822;first@example.com\r\n")
+		scanner.Scan()
+		if got := strings.HasPrefix(scanner.Text(), "250 "); got != accept {
+			t.Errorf("accept=%v: RCPT with ORCPT answered %q", accept, scanner.Text())
+		}
+		io.WriteString(c, "RCPT TO:<v@example.com> NOTIFY=NEVER\r\n")
+		scanner.Scan()
+		if !strings.HasPrefix(scanner.Text(), "504 ") {
+			t.Errorf("accept=%v: NOTIFY without DSN answered %q", accept, scanner.Text())
+		}
+		c.Close()
+		s.Close()
+	}
+}
