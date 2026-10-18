@@ -27,6 +27,11 @@ func (s *xclientSess) Data(r io.Reader) error               { io.Copy(io.Discard
 
 func xclientTestConn(t *testing.T, enable bool) (*xclientBackend, net.Conn, *bufio.Scanner) {
 	t.Helper()
+	return xclientTestConnWith(t, enable, nil)
+}
+
+func xclientTestConnWith(t *testing.T, enable bool, advertise func(net.Addr) bool) (*xclientBackend, net.Conn, *bufio.Scanner) {
+	t.Helper()
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -36,6 +41,7 @@ func xclientTestConn(t *testing.T, enable bool) (*xclientBackend, net.Conn, *buf
 	s := smtp.NewServer(be)
 	s.Domain = "localhost"
 	s.EnableXCLIENT = enable
+	s.XCLIENTAdvertise = advertise
 	go s.Serve(l)
 	c, err := net.Dial("tcp", l.Addr().String())
 	if err != nil {
@@ -120,5 +126,27 @@ func TestServerXClient_IPv6AndUnavailable(t *testing.T) {
 	sc.Scan()
 	if be.got == nil || be.got.Addr != "2001:db8::1" || be.got.Name != "" {
 		t.Fatalf("attrs = %+v, want Addr=2001:db8::1 Name empty", be.got)
+	}
+}
+
+// XCLIENTAdvertise hides XCLIENT from a peer it refuses and shows it to one it
+// accepts; it is asked about the connection's remote address.
+func TestServerXClient_AdvertisePerPeer(t *testing.T) {
+	for _, trusted := range []bool{true, false} {
+		asked := make(chan net.Addr, 1)
+		_, c, sc := xclientTestConnWith(t, true, func(a net.Addr) bool { asked <- a; return trusted })
+		caps := readEHLO(t, c, sc)
+		advertised := false
+		for k := range caps {
+			if strings.HasPrefix(k, "XCLIENT") {
+				advertised = true
+			}
+		}
+		if advertised != trusted {
+			t.Errorf("trusted=%v: XCLIENT advertised %v, caps=%v", trusted, advertised, caps)
+		}
+		if a := <-asked; a.String() != c.LocalAddr().String() {
+			t.Errorf("trusted=%v: asked about %v, want the client's address %v", trusted, a, c.LocalAddr())
+		}
 	}
 }
