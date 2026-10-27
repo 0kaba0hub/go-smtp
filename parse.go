@@ -169,6 +169,28 @@ func (p *parser) parseForwardPath() (string, error) {
 	return p.parsePath()
 }
 
+// parseLMTPForwardPath is parseForwardPath where any recipient may omit the
+// domain: an LMTP server resolves the bare name as a local user.
+func (p *parser) parseLMTPForwardPath() (string, error) {
+	q := *p
+	path, err := q.parseForwardPath()
+	if err == nil {
+		*p = q
+		return path, nil
+	}
+	end := strings.IndexByte(p.s, '>')
+	if !strings.HasPrefix(p.s, "<") || end < 0 {
+		return "", err
+	}
+	inner := parser{s: p.s[1:end]}
+	local, lerr := inner.parseLocalPart()
+	if lerr != nil || local == "" || inner.s != "" {
+		return "", err
+	}
+	p.s = p.s[end+1:]
+	return local, nil
+}
+
 func (p *parser) parsePath() (string, error) {
 	hasBracket := p.acceptByte('<')
 	if p.acceptByte('@') {

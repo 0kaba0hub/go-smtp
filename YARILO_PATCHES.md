@@ -37,6 +37,7 @@ the subjects do not.
 | `f5b6336` | ci: mirror upstream sync + test workflows (yarilo-patches automation) | `.github/workflows/sync-upstream.yml` (daily: fast-forward `master`, rebase this branch, open an `upstream-conflict` issue on a conflict) and `.github/workflows/go.yml` (build and test). | Keeps the branch on current upstream without manual work, and tests every push. |
 | `b88fb02` | ci: pin stable Go toolchain (upstream go.mod declares go 1.13) | `go.yml` builds with `go-version: stable`. | Upstream's `go.mod` says 1.13 while the code uses newer standard library calls, so the declared version cannot build it. |
 | `b4fe94b` | ci: keep the scheduled workflow enabled through quiet upstream periods | `sync-upstream.yml` re-enables itself through the API at the end of each run. | GitHub disables a schedule after 60 days without pushes; a quiet upstream would otherwise stop the sync silently. |
+| (this branch HEAD) | lmtp: any recipient may omit the domain | `parse.go`, `conn.go`: with `Server.LMTP`, RCPT takes `<name>` without a domain and passes `name` on; SMTP keeps the upstream rule (only `<Postmaster>`). Tests in `parse_test.go` and `lmtp_server_test.go`. | An LMTP server delivers to local users, and an MTA may hand it a bare user name; `lmtp-login` and the backend look the name up in userdb as it is and answer 550 5.1.1 for an unknown one. |
 
 ## Tracking upstream
 
