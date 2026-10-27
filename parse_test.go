@@ -81,3 +81,42 @@ func TestParser(t *testing.T) {
 		t.Errorf("parser.parseReversePath(%q) = %q, want error: only a forward-path may omit the domain", "<Postmaster>", path)
 	}
 }
+
+func TestParserLMTPForwardPath(t *testing.T) {
+	valid := []struct {
+		raw, path, after string
+	}{
+		{"<root@nsa.gov>", "root@nsa.gov", ""},
+		{"<Postmaster>", "Postmaster", ""},
+		{"<abuse>", "abuse", ""},
+		{"<abuse> NOTIFY=NEVER", "abuse", " NOTIFY=NEVER"},
+		{"<root+folder>", "root+folder", ""},
+		{`<"john doe">`, "john doe", ""},
+	}
+	for _, tc := range valid {
+		p := parser{tc.raw}
+		path, err := p.parseLMTPForwardPath()
+		if err != nil {
+			t.Errorf("parser.parseLMTPForwardPath(%q) = %v", tc.raw, err)
+		} else if path != tc.path {
+			t.Errorf("parser.parseLMTPForwardPath(%q) = %q, want %q", tc.raw, path, tc.path)
+		} else if p.s != tc.after {
+			t.Errorf("parser.parseLMTPForwardPath(%q): got after = %q, want %q", tc.raw, p.s, tc.after)
+		}
+	}
+
+	invalid := []string{
+		"",
+		"<>",
+		"abuse",
+		"<abuse",
+		"<root@>",
+		"<a b>",
+	}
+	for _, tc := range invalid {
+		p := parser{tc}
+		if path, err := p.parseLMTPForwardPath(); err == nil {
+			t.Errorf("parser.parseLMTPForwardPath(%q) = %q, want error", tc, path)
+		}
+	}
+}
