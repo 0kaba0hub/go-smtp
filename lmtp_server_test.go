@@ -246,3 +246,51 @@ func TestServer_LMTP_DuplicatedRcpt(t *testing.T) {
 		t.Fatal("Invalid number of sent messages:", be.messages, be.anonmsgs)
 	}
 }
+
+// An LMTP recipient may omit the domain; an SMTP one, other than Postmaster,
+// may not.
+func TestServer_LMTPDomainlessRecipient(t *testing.T) {
+	cases := []struct {
+		name  string
+		lmtp  bool
+		reply string
+	}{
+		{"LMTP", true, "250 "},
+		{"SMTP", false, "501 "},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			be, s, c, scanner := testServer(t, func(s *smtp.Server) {
+				s.LMTP = tc.lmtp
+				s.AllowInsecureAuth = true
+			})
+			defer s.Close()
+			defer c.Close()
+			scanner.Scan()
+			if tc.lmtp {
+				sendLHLO(t, scanner, c)
+			} else {
+				io.WriteString(c, "EHLO localhost\r\n")
+				for scanner.Scan() && !strings.HasPrefix(scanner.Text(), "250 ") {
+				}
+			}
+			io.WriteString(c, "MAIL FROM:<root@nsa.gov>\r\n")
+			scanner.Scan()
+			io.WriteString(c, "RCPT TO:<abuse>\r\n")
+			scanner.Scan()
+			if !strings.HasPrefix(scanner.Text(), tc.reply) {
+				t.Fatalf("RCPT TO:<abuse> answered %q, want %q", scanner.Text(), tc.reply)
+			}
+			if !tc.lmtp {
+				return
+			}
+			io.WriteString(c, "DATA\r\n")
+			scanner.Scan()
+			io.WriteString(c, "Hey\r\n.\r\n")
+			scanner.Scan()
+			if len(be.anonmsgs) != 1 || be.anonmsgs[0].To[0] != "abuse" {
+				t.Fatalf("delivered %v, want one message to abuse", be.anonmsgs)
+			}
+		})
+	}
+}
