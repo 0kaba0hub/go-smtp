@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -193,6 +194,9 @@ func (s *Server) handleConn(c *Conn) error {
 	c.greet()
 
 	for {
+		if c.writeErr != nil {
+			return fmt.Errorf("write reply: %w", c.writeErr)
+		}
 		line, err := c.readLine()
 		if err == nil {
 			cmd, arg, err := parseCmd(line)
