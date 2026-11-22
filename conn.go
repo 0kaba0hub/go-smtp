@@ -44,6 +44,9 @@ type Conn struct {
 	fromReceived bool
 	recipients   []string
 	didAuth      bool
+
+	// writeErr is the first failed reply write; the session stops on it.
+	writeErr error
 }
 
 func newConn(c net.Conn, s *Server) *Conn {
@@ -1295,7 +1298,6 @@ func (c *Conn) greet() {
 }
 
 func (c *Conn) writeResponse(code int, enhCode EnhancedCode, text ...string) {
-	// TODO: error handling
 	if c.server.WriteTimeout != 0 {
 		c.conn.SetWriteDeadline(time.Now().Add(c.server.WriteTimeout))
 	}
@@ -1316,13 +1318,21 @@ func (c *Conn) writeResponse(code int, enhCode EnhancedCode, text ...string) {
 	text = strings.Split(strings.Join(text, "\n"), "\n")
 
 	lastLineIndex := len(text) - 1
-	for i := 0; i < lastLineIndex; i++ {
-		c.text.PrintfLine("%d-%v", code, text[i])
+	var err error
+	for i := 0; i < lastLineIndex && err == nil; i++ {
+		err = c.text.PrintfLine("%d-%v", code, text[i])
 	}
-	if enhCode == NoEnhancedCode {
-		c.text.PrintfLine("%d %v", code, text[lastLineIndex])
-	} else {
-		c.text.PrintfLine("%d %v.%v.%v %v", code, enhCode[0], enhCode[1], enhCode[2], text[lastLineIndex])
+	if err == nil {
+		if enhCode == NoEnhancedCode {
+			err = c.text.PrintfLine("%d %v", code, text[lastLineIndex])
+		} else {
+			err = c.text.PrintfLine("%d %v.%v.%v %v", code, enhCode[0], enhCode[1], enhCode[2], text[lastLineIndex])
+		}
+	}
+	if err != nil && c.writeErr == nil {
+		// Commands already buffered from a client that is gone must not run.
+		c.writeErr = err
+		c.conn.Close()
 	}
 }
 
